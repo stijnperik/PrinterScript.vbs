@@ -285,6 +285,15 @@ log("Removing pre existing printers.")
 FOR Each objInstalledPrinter IN arrInstalledPrinters
 	
 	on error resume next
+	
+	IF objInstalledPrinter.Default = -1 THEN
+		IF bNoDefaultLocal AND NOT objInstalledPrinter.Network THEN
+			log("Skipping current default local printer: " & objInstalledPrinter.Name)
+		ELSE
+			log("Current default printer: " & objInstalledPrinter.Name)
+			strDefaultPrinter = objInstalledPrinter.ShareName
+		END IF
+	END IF
 
 	IF objInstalledPrinter.Network OR bDeleteLocalPrinters THEN
 		log("Deleted printer: " & objInstalledPrinter.Name)
@@ -296,6 +305,13 @@ NEXT
 '------------------------------------------------------------------------------------
 '	Add all the printers assigned to this machine.
 '------------------------------------------------------------------------------------
+
+IF strDefaultPrinter = NULL OR strDefaultPrinter = "" THEN
+	strDefaultPrinter = arrMemberOf(0)
+	log("Setting first network printer '" & strDefaultPrinter & "' as default.")
+ELSE
+	log("Current Default '" & strDefaultPrinter & ".")
+END IF
 
 Dim strPrintServer
 Dim strPrinterGroup
@@ -311,6 +327,12 @@ FOR EACH strPrinterGroup IN arrMemberOf
 		log("Adding Printer: \\" & strPrintServer & "\" & strPrinterGroup)
 
 		IF Err.Number = 0 THEN
+			
+			IF strPrinterGroup = strDefaultPrinter THEN
+				on error resume next
+				objNetwork.SetDefaultPrinter "\\" & strPrintServer & "\" & strDefaultPrinter
+				log("Set Default Printer: " & strDefaultPrinter)
+			END IF
 
 			EXIT FOR
 
